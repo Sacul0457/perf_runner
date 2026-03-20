@@ -113,6 +113,6 @@ bm_name: [bm1] mean +- std_dev -> [bm2] mean +- mean +- std_dev (1x/x% faster/sl
 ```
 
 ## Side notes
-- The code is really mess, I know 😭...
-- This is a project I picked up along the way while attempting to do something else
+- The code is really a mess, I know 😭... (This is a project I picked up along the way while attempting to do something else :p)
+- I have roughly compared the results with pyperf and it fairly similar, sometimes exactly the same!
 - Contribution is absolutely welcomed!
