@@ -1,3 +1,9 @@
+> [!WARNING]
+> This project is still under development. Expect breaking changes to the API and CLI commands. T
+> The internals are going to be re-written/changed frequently.
+> 
+> Not recommended for production use yet, but testing it out is much appreciated if possible!
+
 # perf_runner
 A python benchmark runner and analyzer for fast and efficient benchmarking.
 
@@ -51,7 +57,7 @@ if __name__ == "__main__":
     main()
 ```
 
-### Output Format
+### Output Format (Simplified)
 ```sh
 - python version:
 - has_jit:
@@ -89,7 +95,7 @@ This compares the benchmark results of two generated json files.
 -m perf_runner compare_to bm1.json bm2.json
 ```
 
-### Example Output
+### Output Format (Simplified)
 ```sh
 - python version:
 - has_jit:
@@ -109,7 +115,7 @@ bm2:
  - ...
 
 
-bm_name: [bm1] mean +- std_dev -> [bm2] mean +- mean +- std_dev (1x/x% faster/slower)
+bm_name: [bm1] mean +- std_dev -> [bm2] mean +- std_dev (1x/x% faster/slower)
 ```
 
 ## Side notes
