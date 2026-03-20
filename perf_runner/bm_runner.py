@@ -54,7 +54,7 @@ class BenchmarkRunner:
         'warmup_threshold',
         'output_file',
         'module_name',
-        '_time_benchmarks',
+        '_speed_benchmarks',
         '_mem_benchmarks'
     )
 
@@ -66,7 +66,7 @@ class BenchmarkRunner:
         self.runs = runs
         self.output_file = output_file or (sys.argv[1].removeprefix("--output=") if (len(sys.argv) > 1 and "--output=" in sys.argv[1]) else None)
         self.module_name: str = "__main__"
-        self._time_benchmarks: list[FunctionMetadata]  = []
+        self._speed_benchmarks: list[FunctionMetadata]  = []
         self._mem_benchmarks: list[FunctionMetadata] = []
 
 
@@ -86,7 +86,7 @@ class BenchmarkRunner:
             Whether to deepy copy the arguments instead of mutating on the actual arguments.
         """
         if bm_type is BmType.SPEED:
-            self._time_benchmarks.append(FunctionMetadata(func, args, is_manual, copy_args))
+            self._speed_benchmarks.append(FunctionMetadata(func, args, is_manual, copy_args))
         else:
             self._mem_benchmarks.append(FunctionMetadata(func, args, is_manual, copy_args))
 
@@ -195,7 +195,7 @@ class BenchmarkRunner:
                 copy_args = func_info[2] if len(func_info) > 2 else copy_args
             functions.append((fn, args, manual, copy_args))
 
-        self._time_benchmarks.extend(functions) if bm_type is BmType.SPEED else self._mem_benchmarks.extend(functions)
+        self._speed_benchmarks.extend(functions) if bm_type is BmType.SPEED else self._mem_benchmarks.extend(functions)
         self.module_name = module_name
 
     def _setup_base_data(self, n_functions: int, bm_type: BmType) -> dict[BmType, Any]:
@@ -235,8 +235,8 @@ class BenchmarkRunner:
         """
         Runs the benchmarks added.
         """
-        if self._time_benchmarks:
-            speed_base_data = self._benchmark_time(self._time_benchmarks)
+        if self._speed_benchmarks:
+            speed_base_data = self._benchmark_speed(self._speed_benchmarks)
 
             speed_data = speed_base_data[BmType.SPEED]
 
@@ -249,7 +249,7 @@ class BenchmarkRunner:
             mem_base_data = self._benchmark_mem(self._mem_benchmarks)
             mem_data = mem_base_data[BmType.MEMORY]
 
-            if not self._time_benchmarks:
+            if not self._speed_benchmarks:
                 _print_common_info(mem_data)
             logger.blue("\n".join(MEM_START_STR))
             _print_per_run_info(mem_data, BmType.MEMORY)
@@ -297,7 +297,7 @@ class BenchmarkRunner:
 
         return warmup_threshold, int(runs)
 
-    def _benchmark_time(self, functions: list[FunctionMetadata]) -> dict:
+    def _benchmark_speed(self, functions: list[FunctionMetadata]) -> dict:
         base_data = self._setup_base_data(len(functions), BmType.SPEED)
         data = base_data[BmType.SPEED]
         for bm, args, is_manual, copy_args, in functions:

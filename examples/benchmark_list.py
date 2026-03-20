@@ -51,7 +51,7 @@ def main():
     runner = BenchmarkRunner("List Benchmark")
     l = list(range(10000))
     args = (l, )
-    func_time_metadata = {
+    func_speed_metadata = {
         # We are going to deep copy the args but not measure the timing manually
         "test_pop": (args, False, True),
 
@@ -59,7 +59,7 @@ def main():
         "test_pop_index": ((args, True, True))
     }
     # The rest of the args do not need to be deep copied
-    runner.add_benchmarks(func_metadata=func_time_metadata, bm_type=BmType.SPEED)
+    runner.add_benchmarks(func_metadata=func_speed_metadata, bm_type=BmType.SPEED)
     
     func_mem_metadata = {
         # We are going to deep copy the args but not measure the timing manually
