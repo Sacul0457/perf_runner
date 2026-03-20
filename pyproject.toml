@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "perf_runner"
+version = "0.1.0"
+description = "A python benchmark runner"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.setuptools]
+packages = ["perf_runner"]
+include-package-data = true
