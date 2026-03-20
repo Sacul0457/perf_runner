@@ -86,7 +86,7 @@ Useful if you want to store the data and still be able to analyse the informatio
 #### `compare_to`
 This compares the benchmark results of two generated json files.
 ```sh
--m perf_runner bm1.json bm2.json
+-m perf_runner compare_to bm1.json bm2.json
 ```
 
 ### Example Output
