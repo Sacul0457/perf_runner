@@ -1,5 +1,5 @@
 > [!WARNING]
-> This project is still under development. Expect breaking changes to the API and CLI commands. T
+> This project is still under development. There will be breaking changes to the API and CLI commands.
 > The internals are going to be re-written/changed frequently.
 > 
 > Not recommended for production use yet, but testing it out is much appreciated if possible!
