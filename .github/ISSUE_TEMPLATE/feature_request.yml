@@ -1,0 +1,12 @@
+name: Feature or Enhancement
+description: Request a feature/improvement to the codebase
+labels: ["enhancement"]
+body:
+  - type: textarea
+    attributes:
+      label: "Feature Request/Enhancement"
+      description: >
+        Explain your request, why it should be implemented, and how it would be used.
+        Add examples, if applicable.
+    validations:
+      required: true
