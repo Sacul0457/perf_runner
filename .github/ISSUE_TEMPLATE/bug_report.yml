@@ -1,6 +1,6 @@
 name: Bug Report
 description: Reporting an error or unexpected behaviour
-labels: ["unconfirmed bug]
+labels: ["unconfirmed bug"]
 body:
   - type: input
     attributes:
