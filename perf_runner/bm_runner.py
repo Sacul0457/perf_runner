@@ -235,6 +235,8 @@ class BenchmarkRunner:
         """
         Runs the benchmarks added.
         """
+        speed_base_data = {}
+        mem_base_data = {}
         if self._speed_benchmarks:
             speed_base_data = self._benchmark_speed(self._speed_benchmarks)
 
@@ -257,6 +259,13 @@ class BenchmarkRunner:
             logger.info("\n".join(END_STR))
         else:
             logger.info("\n".join(END_STR))
+
+        if not speed_base_data and mem_base_data:
+            raise ValueError("Both 'speed_base_data' and 'mem_base_data' are empty!")
+        
+        if self.output_file is not None:
+            speed_base_data.update(mem_base_data)
+            self._write_data_to_output(speed_base_data)
 
 
     #  +================================+
@@ -355,10 +364,10 @@ class BenchmarkRunner:
             raise ValueError("analysed_bms is empty!")
 
         for bm_data in analysed_bms:
-            descriptoin = bm_data['description'].strip('\n') # pypy moment
+            description = (bm_data['description'] or "None").strip('\n') # pypy moment
             bm_general_info = (
                 f"Name: {bm_data['name']}",
-                f"Description: {descriptoin}",
+                f"Description: {description}",
                 f"Warmup Loops: {bm_data['warmup_loops']}",
                 f"Runs: {bm_data['runs']}\n",
             )
@@ -446,7 +455,7 @@ class BenchmarkRunner:
         if not analysed_bms:
             raise ValueError("analysed_bms is empty!")
         for bm_data in analysed_bms:
-            description = bm_data['description'].strip('\n') # pypy moment
+            description = (bm_data['description'] or "None").strip('\n') # pypy moment
             bm_general_info = (
                 f"Name: {bm_data['name']}",
                 f"Description: {description}",

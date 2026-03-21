@@ -28,7 +28,7 @@ def _compare(base: dict, base_name: str, other: dict, other_name: str):
         
 
         for base_bm, other_bm in zip(base_data, other_data):
-            description = base_bm['description'].strip('\n') # pypy moment
+            description = (base_bm['description'] or "None").strip('\n') # pypy moment
             bm_info = (
                 "Benchmark:",
                 f"- Name: {base_bm['name']}",
@@ -72,7 +72,7 @@ def _compare(base: dict, base_name: str, other: dict, other_name: str):
         
 
         for base_bm, other_bm in zip(base_data, other_data):
-            description = base_bm['description'].strip('\n') # pypy moment
+            description = (base_bm['description'] or "None").strip('\n') # pypy moment
             bm_info = (
                 "Benchmark:",
                 f"- Name: {base_bm['name']}",
