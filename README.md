@@ -2,7 +2,7 @@
 > This project is still under development. There will be breaking changes to the API and CLI commands.
 > The internals are going to be re-written/changed frequently.
 > 
-> Not recommended for production use yet, but testing it out is much appreciated if possible!
+> Not recommended to be used in production yet, but testing it out is much appreciated if possible!
 
 # perf_runner
 A python benchmark runner and analyzer for fast and efficient benchmarking.
@@ -13,8 +13,23 @@ A python benchmark runner and analyzer for fast and efficient benchmarking.
 - Adaptive warmup threshold and runs (including JITs) - This ensures stable and accurate results.
 - Detailed and colour coded results.
 
+## Installing
+
+Currently it is not on Pip sadly, but probably will be in the future!
+Hence you have to install the development version.
+
+> [!NOTE]
+> Python 3.11 or higher is required
+
+```sh
+# Linux/macOS
+python3 -m pip install -U git+https://github.com/Sacul0457/perf_runner
+
+# Windows
+py -3 -m pip install -U git+https://github.com/Sacul0457/perf_runner
+```
+
 # Example
-Code:
 ```python
 """
 A benchmark to benchmark list operations
@@ -121,4 +136,4 @@ bm_name: [bm1] mean +- std_dev -> [bm2] mean +- std_dev (1x/x% faster/slower)
 ## Side notes
 - The code is really a mess, I know 😭... (This is a project I picked up along the way while attempting to do something else :p)
 - I have roughly compared the results with pyperf and it fairly similar, sometimes exactly the same!
-- Contribution is absolutely welcomed!
+- Contributions are absolutely welcomed!
