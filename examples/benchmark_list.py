@@ -59,7 +59,7 @@ def main():
         "test_pop_index": ((args, True, True))
     }
     # The rest of the args do not need to be deep copied
-    runner.add_benchmarks(func_metadata=func_speed_metadata, bm_type=BmType.SPEED)
+    runner.add_benchmarks(BmType.SPEED, func_metadata=func_speed_metadata)
     
     func_mem_metadata = {
         # We are going to deep copy the args but not measure the timing manually
@@ -69,8 +69,7 @@ def main():
         "test_pop_index": ((args, False, True))
     }
 
-    runner.add_benchmarks(func_metadata=func_mem_metadata,
-                           bm_type=BmType.MEMORY)
+    runner.add_benchmarks(BmType.MEMORY, func_metadata=func_mem_metadata)
     runner.run()
 
 if __name__ == "__main__":

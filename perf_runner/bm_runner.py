@@ -180,17 +180,18 @@ class BenchmarkRunner:
 
         functions = []
         for name, fn in inspect.getmembers(sys.modules["__main__"], inspect.isfunction):
-            manual: bool = False
             if fn.__module__ != module_name or name in to_ignore or not key(fn):
                 continue
-
+            bm_args = args
+            bm_is_manual = is_manual
+            bm_copy_args = copy_args
             if func_metadata is not None:
                 func_info = func_metadata.get(fn.__name__, ()) or ()
-                args = func_info[0] if func_info else args
-                manual = func_info[1] if len(func_info) > 1 else is_manual
-                copy_args = func_info[2] if len(func_info) > 2 else copy_args
-            functions.append((fn, args, manual, copy_args))
-
+                if func_info:
+                    bm_args = func_info[0]
+                    bm_is_manual = func_info[1] if len(func_info) > 1 else is_manual
+                    bm_copy_args = func_info[2] if len(func_info) > 2 else copy_args
+            functions.append((fn, bm_args, bm_is_manual, bm_copy_args))
         self._speed_benchmarks.extend(functions) if bm_type is BmType.SPEED else self._mem_benchmarks.extend(functions)
         self.module_name = module_name
 
