@@ -52,19 +52,16 @@ class BenchmarkRunner:
         'metadata',
         'runs',
         'warmup_threshold',
-        'output_file',
         'module_name',
         '_speed_benchmarks',
         '_mem_benchmarks'
     )
 
-    def __init__(self, name: str, *, runs: int | None = None, metadata: dict[str, Any] | None = None, warmup_threshold: float | None = None, 
-                 output_file: str | None = None) -> None:
+    def __init__(self, name: str, *, runs: int | None = None, metadata: dict[str, Any] | None = None, warmup_threshold: float | None = None) -> None:
         self.name = name
         self.metadata = metadata
         self.warmup_threshold = warmup_threshold
         self.runs = runs
-        self.output_file = output_file or (sys.argv[1].removeprefix("--output=") if (len(sys.argv) > 1 and "--output=" in sys.argv[1]) else None)
         self.module_name: str = "__main__"
         self._speed_benchmarks: list[FunctionMetadata]  = []
         self._mem_benchmarks: list[FunctionMetadata] = []
@@ -107,15 +104,18 @@ class BenchmarkRunner:
             new_args.extend(args[count:])
         return tuple(new_args)
 
-    def add_benchmarks(self, *, bms: list[str] | None = None, module_name: str = "__main__",
+    def add_benchmarks(self, bm_type: BmType, *, bms: list[str] | None = None, module_name: str = "__main__",
                             to_ignore: list[str] | None = None,
                             func_metadata: dict[str, tuple] | None = None,  args: tuple = (),
-                            copy_args: bool = False, is_manual: bool = False, key: Callable | None = None, 
-                            bm_type: BmType) -> None:
+                            copy_args: bool = False, is_manual: bool = False, key: Callable | None = None) -> None:
         """Add multiple benchmarks.
 
         Parameters
         ----------
+        bm_type: ``BmType``
+            Determines whether benchmarks measure execution speed or
+            memory usage.
+
         bms: list[``str``] | ``None``
             A list of function names to benchmark. If not provided, all functions
             in the module will be considered.
@@ -161,10 +161,6 @@ class BenchmarkRunner:
             Predicate used to identify benchmark functions. The callable
             receives a function and should return ``True`` if it should
             be included.
-
-        bm_type: ``BmType``
-            Determines whether benchmarks measure execution speed or
-            memory usage. Defaults to ``BmType.SPEED``.
 
         Raises
         -------
@@ -215,11 +211,12 @@ class BenchmarkRunner:
         }
         return base
 
-    def _write_data_to_output(self, to_write: dict) -> None:
-        assert isinstance(self.output_file, str)
+    @staticmethod
+    def _write_data_to_output(file_path: str, to_write: dict) -> None:
+        assert isinstance(file_path, str)
 
         try:
-            with open(self.output_file, "r") as f:
+            with open(file_path, "r") as f:
                 curr_data: dict = json.load(f)
         except FileNotFoundError:
             curr_data = to_write
@@ -228,12 +225,25 @@ class BenchmarkRunner:
                 curr_data.update(to_write)
             else:
                 curr_data = to_write
-        with open(self.output_file, "w") as f:
+        with open(file_path, "w") as f:
             json.dump(curr_data, f)
 
-    def run(self) -> None:
+    def run(self, *, run_metadata: dict[str, Any] | None = None, output_file: str | None = None) -> None:
         """
         Runs the benchmarks added.
+
+        Parameters
+        -----------
+        output_file: ``str`` | ``None``
+            The json file to write the benchmark results to.
+        
+        run_metadata: dict[``str``, ``Any``] | ``None``
+            Additional information to be printed, does not affect runtime.
+
+        Raises
+        --------
+        ValueError
+            Both benchmarks for speed and memory usage are empty
         """
         speed_base_data = {}
         mem_base_data = {}
@@ -241,6 +251,7 @@ class BenchmarkRunner:
             speed_base_data = self._benchmark_speed(self._speed_benchmarks)
 
             speed_data = speed_base_data[BmType.SPEED]
+            speed_data['run_metadata'] = run_metadata
 
             _print_common_info(speed_data)
             logger.blue("\n".join(SPEED_START_STR))
@@ -250,6 +261,7 @@ class BenchmarkRunner:
         if self._mem_benchmarks:
             mem_base_data = self._benchmark_mem(self._mem_benchmarks)
             mem_data = mem_base_data[BmType.MEMORY]
+            mem_data['run_metadata'] = run_metadata
 
             if not self._speed_benchmarks:
                 _print_common_info(mem_data)
@@ -262,10 +274,29 @@ class BenchmarkRunner:
 
         if not speed_base_data and mem_base_data:
             raise ValueError("Both 'speed_base_data' and 'mem_base_data' are empty!")
-        
-        if self.output_file is not None:
+
+        output_file = output_file or (sys.argv[1].removeprefix('--output=') if (len(sys.argv) > 1 and "--output=" in sys.argv[1]) else None)
+        if output_file is not None:
             speed_base_data.update(mem_base_data)
-            self._write_data_to_output(speed_base_data)
+            self._write_data_to_output(output_file, speed_base_data)
+    
+
+    def clear_benchmarks(self, *, clear_speed: bool = True, clear_memory: bool = True):
+        """
+        Clears the internal benchmarks. Useful if you want to run benchmarks with different arguments.
+
+        Parameters
+        ----------
+        clear_speed: ``bool``
+            Whether to clear the benchmarks benched for speed. Defaults to ``True``.
+        clear_memory: ``bool``
+            Whether to clear the benchmarks benched for memory usage. Defaults to ``True``.
+        """
+        if clear_speed:
+            self._speed_benchmarks.clear()
+        
+        if clear_memory:
+            self._mem_benchmarks.clear()
 
 
     #  +================================+
@@ -451,6 +482,7 @@ class BenchmarkRunner:
 
     @staticmethod
     def _print_data_mem(data: dict) -> None:
+        print(f"\n------- BENCHMARKS -------\n\n")
         analysed_bms = _analyse_benchmark(data, BmType.MEMORY)
         if not analysed_bms:
             raise ValueError("analysed_bms is empty!")

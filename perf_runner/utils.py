@@ -97,6 +97,7 @@ def _get_logger_mode(rv: float, logger: Logger):
 
     return logger_mode
 
+
 def _print_common_info(data: dict) -> None:
     info = (
         f"- Python Version: {data['python_version']}",
@@ -115,16 +116,17 @@ def _print_per_run_info(data: dict, bm_type: BmType) -> None:
         f"- Generic Runs per BM: {data['runs']}\n"
     )
     print("\n".join(info))
+    _print_metadata(data)
 
 def _print_metadata(data: dict) -> None:
-    if data['metadata']:
-        print(f"Common Metadata:")
-        for key, value in data['metadata'].items():
+    if data['run_metadata']:
+        print(f"Common Run Metadata:")
+        for key, value in data['run_metadata'].items():
             print(f"- {key}: {value}")
+    print()
 
 
 def _analyse_benchmark(data: dict, bm_type: BmType) -> Generator[dict[str, Any]]:
-    
     key = "values" if bm_type == BmType.SPEED else "memory"
     for bm_name, bm_data in data['benchmarks'].items():
         analysed_bm = {
@@ -257,6 +259,5 @@ def _print_mean_stddev(base_args: tuple, other_args: tuple, *, bm_name: str, bm_
     other_logger("[%s] %s %s", other_name, formatter(other_mean), f"+- {formatter(otherstddev)} ({diff_str})")
 
 def merge_data(base: dict, other: dict) -> None:
-    # to be done
     pass
     
