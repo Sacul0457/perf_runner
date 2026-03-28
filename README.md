@@ -72,27 +72,6 @@ if __name__ == "__main__":
     main()
 ```
 
-### Output Format (Simplified)
-```sh
-- python version:
-- has_jit:
-...
-
-Benchmark for Speed:
-Name:
-Description:
-runs:
-...
-
-Mean:
-Min:
-Max:
-
-std dev:
-Relative Variability: 
-```
-
-
 - ### [More Examples](examples)
 
 # CLI Commands
@@ -110,28 +89,6 @@ This compares the benchmark results of two generated json files.
 -m perf_runner compare_to bm1.json bm2.json
 ```
 
-### Output Format (Simplified)
-```sh
-- python version:
-- has_jit:
-...
-
-Benchmark for Speed:
-
-bm1:
- - Name:
- - Description:
- - runs:
- - Mean:
- - Min:
- - Max:
-
-bm2:
- - ...
-
-
-bm_name: [bm1] mean +- std_dev -> [bm2] mean +- std_dev (1x/x% faster/slower)
-```
 
 ## Side notes
 - The code is really a mess, I know 😭... (This is a project I picked up along the way while attempting to do something else :p)
