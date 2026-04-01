@@ -222,20 +222,20 @@ def _print_bm_info(bm_data: dict, bm_type: BmType) -> None:
         _utils_logger.info("\n".join(bm_mean_min_max), _format_bytes(bm_data['mean']), 
                     _format_bytes(bm_data['min']), _format_bytes(bm_data['max']))
         
-def _compute_diff(base: float, other: float, bm_type: BmType) -> tuple[float, str]:
+def _compute_diff(base: float, other: float, bm_type: BmType) -> tuple[float, float, str]:
     # we assume 'other' is faster
 
-    diff = (base - other) / base * 100
+    p_diff = (base - other) / base * 100
     if other > base:
         x_diff = other / base
-        str_value = f"{x_diff:.1f}x/{abs(diff):.1f}% slower" if bm_type == BmType.SPEED else f"{x_diff:.1f}x/{abs(diff):.1f}% more"
+        str_value = f"{x_diff:.1f}x/{abs(p_diff):.1f}% slower" if bm_type == BmType.SPEED else f"{x_diff:.1f}x/{abs(p_diff):.1f}% more"
     else:
         x_diff = base / other
-        str_value = f"{x_diff:.1f}x/{diff:.1f}% faster" if bm_type == BmType.SPEED else f"{x_diff:.1f}x/{abs(diff):.1f}% less"
+        str_value = f"{x_diff:.1f}x/{p_diff:.1f}% faster" if bm_type == BmType.SPEED else f"{x_diff:.1f}x/{abs(p_diff):.1f}% less"
 
-    return diff, str_value
+    return p_diff, x_diff, str_value
 
-def _print_mean_stddev(base_args: tuple, other_args: tuple, *, bm_name: str, bm_type: BmType) -> None:
+def _print_mean_stddev(base_args: tuple, other_args: tuple, diff: tuple[float, float, str], *, bm_name: str, bm_type: BmType) -> None:
     base_mean, base_stddev, base_name = base_args
     other_mean, otherstddev, other_name = other_args
     
@@ -244,7 +244,7 @@ def _print_mean_stddev(base_args: tuple, other_args: tuple, *, bm_name: str, bm_
     # im lazy to do the whole thing so yeah
     formatter = _format_timing if bm_type == BmType.SPEED else _format_bytes
 
-    p_diff, diff_str = _compute_diff(base_mean, other_mean, bm_type)
+    p_diff, _, diff_str = diff
     if -2.5 < p_diff < 2.5:
         base_logger = _utils_logger.blue
         other_logger = _utils_logger.blue
@@ -258,6 +258,50 @@ def _print_mean_stddev(base_args: tuple, other_args: tuple, *, bm_name: str, bm_
     base_logger("[%s] %s %s -> ", base_name, formatter(base_mean), f"+- {formatter(base_stddev)}", end='')
     other_logger("[%s] %s %s", other_name, formatter(other_mean), f"+- {formatter(otherstddev)} ({diff_str})")
 
+
 def merge_data(base: dict, other: dict) -> None:
     pass
     
+class GeometricMean:
+    def __init__(self) -> None:
+        self._n = 0
+        self._sum = 1
+
+        self.base = 0
+        self.other = 0
+
+    def add(self, num, *, base_mean: float, other_mean: float) -> None:
+        self.base += base_mean
+        self.other += other_mean
+
+        self._sum *= num
+        self._n += 1
+
+    @property
+    def geo_mean(self) -> float:
+        return self._sum ** (1 / self._n)
+    
+    def print_geomean(self, bm_type: BmType) -> None:
+        # we assume 'other' is faster
+
+        geo_mean = self.geo_mean
+        is_faster = self.base > self.other
+
+        if 0.9 < geo_mean < 1.1:
+            logger = _utils_logger.blue
+        elif is_faster:
+            logger = _utils_logger.green
+        else:
+            logger = _utils_logger.red
+
+        geo_mean_fmt = f"{geo_mean:.2f}x"
+        if bm_type == BmType.SPEED:
+            if is_faster:
+                logger("Geomertric Mean: %s faster", geo_mean_fmt, colour_all=True)
+            else:
+                logger("Geomertric Mean: %s slower", geo_mean_fmt,  colour_all=True)
+        else:
+            if is_faster:
+                logger("Geomertric Mean: %s less mem usage", geo_mean_fmt,  colour_all=True)
+            else:
+                logger("Geomertric Mean: %s more mem usage", geo_mean_fmt, colour_all=True)

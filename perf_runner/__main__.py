@@ -1,6 +1,7 @@
 import sys
 from .utils import _analyse_benchmark, _print_common_info, _print_per_run_info, \
-    _print_bm_info, _print_mean_stddev, Logger, END_STR, SPEED_START_STR, MEM_START_STR
+    _print_bm_info, _print_mean_stddev, Logger, END_STR, SPEED_START_STR, MEM_START_STR, \
+    GeometricMean, _compute_diff
 from json import load
 from .bm_runner import BenchmarkRunner
 from .api_types import BmType
@@ -12,6 +13,7 @@ _main_logger = Logger()
 def _compare(base: dict, base_name: str, other: dict, other_name: str):
     print_speed =  BmType.SPEED in base and BmType.SPEED in other
     if print_speed:
+        gm = GeometricMean()
         _main_logger.blue("\n".join(SPEED_START_STR))
         base_data = _analyse_benchmark(base[BmType.SPEED], BmType.SPEED)
         other_data = _analyse_benchmark(other[BmType.SPEED], BmType.SPEED)
@@ -24,7 +26,7 @@ def _compare(base: dict, base_name: str, other: dict, other_name: str):
         _print_common_info(other[BmType.SPEED])
         _print_per_run_info(other[BmType.SPEED], BmType.SPEED)
 
-        print(f"\n------- BENCHMARKS -------\n\n")
+        print(f"------- BENCHMARKS -------\n\n")
         
 
         for base_bm, other_bm in zip(base_data, other_data):
@@ -49,11 +51,17 @@ def _compare(base: dict, base_name: str, other: dict, other_name: str):
             other_mean = other_bm['mean']
             other_std_dev = other_bm['std_dev']
 
-            _print_mean_stddev((base_mean, base_std_dev, base_name), (other_mean, other_std_dev, other_name), bm_name=bm_name, bm_type = BmType.SPEED)
+
+            diff = _compute_diff(base_mean, other_mean, BmType.SPEED)
+            _print_mean_stddev((base_mean, base_std_dev, base_name), (other_mean, other_std_dev, other_name), diff, bm_name=bm_name, bm_type = BmType.SPEED)
+            gm.add(diff[1], base_mean=base_mean, other_mean=other_mean)
 
             print("\n========================================\n========================================\n")
 
+        gm.print_geomean(BmType.SPEED)
+
     if BmType.MEMORY in base and BmType.MEMORY in other:
+        gm = GeometricMean()
         _main_logger.blue("\n".join(MEM_START_STR))
         base_data = _analyse_benchmark(base[BmType.MEMORY], BmType.MEMORY)
         other_data = _analyse_benchmark(other[BmType.MEMORY], BmType.MEMORY)
@@ -68,7 +76,7 @@ def _compare(base: dict, base_name: str, other: dict, other_name: str):
             _print_common_info(base[BmType.MEMORY])
         _print_per_run_info(other[BmType.MEMORY], BmType.MEMORY)
 
-        print(f"\n------- BENCHMARKS -------\n\n")
+        print(f"------- BENCHMARKS -------\n\n")
         
 
         for base_bm, other_bm in zip(base_data, other_data):
@@ -93,15 +101,20 @@ def _compare(base: dict, base_name: str, other: dict, other_name: str):
             other_mean = other_bm['mean']
             other_std_dev = other_bm['std_dev']
 
-            _print_mean_stddev((base_mean, base_std_dev, base_name), (other_mean, other_std_dev, other_name), bm_name=bm_name, bm_type=BmType.MEMORY)
+            diff = _compute_diff(base_mean, other_mean, BmType.MEMORY)
+            _print_mean_stddev((base_mean, base_std_dev, base_name), (other_mean, other_std_dev, other_name), diff, bm_name=bm_name, bm_type = BmType.MEMORY)
+            gm.add(diff[1], base_mean=base_mean, other_mean=other_mean)
 
             print("\n========================================\n========================================\n")
+
+        gm.print_geomean(BmType.MEMORY)
         _main_logger.info("\n".join(END_STR))
     else:
         _main_logger.info("\n".join(END_STR))
 
 
-def print_help_command(cmd_type: Literal['-h', '--help','compare_to', 'show']):
+def print_help_command(cmd_type: Literal['-h', '--help','compare_to', '' \
+'show']):
     if cmd_type in ('-h', '--help'):
         usg_descr = (
             "Usage: -m Runner [commands | options]",

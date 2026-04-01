@@ -33,18 +33,18 @@ class BenchmarkRunner:
     Attributes
     -----------
     name : :class:`str`
-        The name of the benchmark
+        The name of the benchmark.
     runs : Optional[:class:`int`]
         The number of times to run a benchmark. If not set, it is internally calculated 
         and is the recommended thing to do.
+    metadata: `dict[str, Any]` | `None`
+        The metadata to add to the run.
     warmup_threshold : Optional[:class:`float`]
         The miminum time taken needed to warmup a benchmark. If not set, it is internally calculated 
         and is the recommended thing to do.
     output_file : Optional[:class:`str`]
         The raw data to write to. You can also set this through the command line:
         ``benchmark.py --output=result.json``
-    module_name : Optional[:class:`str`]
-        The name of the module to get the benchmarks from.
     """
 
     __slots__: tuple[str, ...] = (
@@ -79,6 +79,9 @@ class BenchmarkRunner:
             Whether to benchmark this function for speed or for memory usage.
         args: :class:`tuple`
             The args to parse into the benchmark. Defaults to an empty tuple.
+        is_manual: :class:`bool`
+            Whether the runner should calculate the time taken/memory usage.
+            If not, the function itself should return the time taken/memory usage.
         copy_args: :class:`bool`
             Whether to deepy copy the arguments instead of mutating on the actual arguments.
         """
