@@ -228,10 +228,10 @@ def _compute_diff(base: float, other: float, bm_type: BmType) -> tuple[float, fl
     p_diff = (base - other) / base * 100
     if other > base:
         x_diff = other / base
-        str_value = f"{x_diff:.1f}x/{abs(p_diff):.1f}% slower" if bm_type == BmType.SPEED else f"{x_diff:.1f}x/{abs(p_diff):.1f}% more"
+        str_value = f"{x_diff:.2f}x/{abs(p_diff):.2f}% slower" if bm_type == BmType.SPEED else f"{x_diff:.2f}x/{abs(p_diff):.2f}% more"
     else:
         x_diff = base / other
-        str_value = f"{x_diff:.1f}x/{p_diff:.1f}% faster" if bm_type == BmType.SPEED else f"{x_diff:.1f}x/{abs(p_diff):.1f}% less"
+        str_value = f"{x_diff:.2f}x/{p_diff:.2f}% faster" if bm_type == BmType.SPEED else f"{x_diff:.2f}x/{abs(p_diff):.2f}% less"
 
     return p_diff, x_diff, str_value
 
@@ -297,11 +297,12 @@ class GeometricMean:
         geo_mean_fmt = f"{geo_mean:.2f}x"
         if bm_type == BmType.SPEED:
             if is_faster:
-                logger("Geomertric Mean: %s faster", geo_mean_fmt, colour_all=True)
+                fmt = "Geometric Mean: %s faster"
             else:
-                logger("Geomertric Mean: %s slower", geo_mean_fmt,  colour_all=True)
+                fmt = "Geometric Mean: %s slower"
         else:
             if is_faster:
-                logger("Geomertric Mean: %s less mem usage", geo_mean_fmt,  colour_all=True)
+                fmt = "Geometric Mean: %s less mem usage"
             else:
-                logger("Geomertric Mean: %s more mem usage", geo_mean_fmt, colour_all=True)
+                fmt = "Geometric Mean: %s more mem usage"
+        logger(fmt, geo_mean_fmt, colour_all=True)
