@@ -2,14 +2,13 @@
 A benchmark to benchmark list operations
 """
 
-from perf_runner import BenchmarkRunner, BmType
+from perf_runner import BenchmarkRunner, BmType, FunctionMetadata
 from time import perf_counter
 
 def test_append():
     """
     Appends an integer to a list 10000 times
     """
-
     l = []
     for i in range(10000):
         l.append(i)
@@ -30,7 +29,7 @@ def test_insert():
     for i in range(10000):
         l.insert(0, i)
 
-def test_pop(l):
+def test_pop(*, l):
     """
     Pops the last item from a list 10000 times
     """
@@ -53,23 +52,23 @@ def main():
     args = (l, )
     func_speed_metadata = {
         # We are going to deep copy the args but not measure the timing manually
-        "test_pop": (args, False, True),
+        "test_pop": FunctionMetadata(kwargs={'l': l}, copy_args=True, is_manual=False),
 
         # We are going to deep copy the args and measure the timing manually
-        "test_pop_index": ((args, True, True))
+        "test_pop_index": FunctionMetadata(args=args, copy_args=True, is_manual=True)
     }
     # The rest of the args do not need to be deep copied
-    runner.add_benchmarks(BmType.SPEED, func_metadata=func_speed_metadata)
+    runner.add_benchmarks(BmType.SPEED, function_metadata_map=func_speed_metadata)
     
     func_mem_metadata = {
         # We are going to deep copy the args but not measure the timing manually
-        "test_pop": (args, False, True),
+        "test_pop": FunctionMetadata(kwargs={'l': l}, copy_args=True, is_manual=False),
 
         # We are going to deep copy the args but not measure the timing manually
-        "test_pop_index": ((args, False, True))
+        "test_pop_index": FunctionMetadata(args=args, copy_args=True, is_manual=False)
     }
 
-    runner.add_benchmarks(BmType.MEMORY, func_metadata=func_mem_metadata)
+    runner.add_benchmarks(BmType.MEMORY, function_metadata_map=func_mem_metadata)
     runner.run()
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 A benchmark to benchmark string operations
 """
 
-from perf_runner import BenchmarkRunner, BmType
+from perf_runner import BenchmarkRunner, BmType, FunctionMetadata
 from string import ascii_letters
 from random import choice as rand_choice, randint
 
@@ -24,13 +24,13 @@ def test_slice(s: str):
 def main():
     runner = BenchmarkRunner("String Benchmark")
     random_str = "".join(char for _ in range(1000) for char in rand_choice(ascii_letters))
-    
+    args = (random_str, random_str[randint(1, 999)])
     func_metadata = {
-        "test_find": ((random_str, random_str[randint(1, 999)]))
+        "test_find": FunctionMetadata(args=args),
     }
     args = (random_str, )
-    runner.add_benchmarks(BmType.SPEED, args=args, func_metadata=func_metadata)
-    runner.add_benchmarks(BmType.MEMORY, args=args, func_metadata=func_metadata)
+    runner.add_benchmarks(BmType.SPEED, args=args, function_metadata_map=func_metadata)
+    runner.add_benchmarks(BmType.MEMORY, args=args, function_metadata_map=func_metadata)
     
     runner.run()
 

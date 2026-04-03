@@ -8,7 +8,7 @@ from copy import deepcopy
 
 from .utils import Logger, END_STR, SPEED_START_STR, MEM_START_STR, _get_logger_mode, \
         _print_common_info, _print_per_run_info, _analyse_benchmark, \
-        _format_timing, _format_bytes
+        _format_timing, _format_bytes, get_attributes_from_slots
 
 from .api_types import FunctionMetadata, BmType
 
@@ -63,11 +63,11 @@ class BenchmarkRunner:
         self.warmup_threshold = warmup_threshold
         self.runs = runs
         self.module_name: str = "__main__"
-        self._speed_benchmarks: list[FunctionMetadata]  = []
-        self._mem_benchmarks: list[FunctionMetadata] = []
+        self._speed_benchmarks: list[tuple[Callable, FunctionMetadata]]  = []
+        self._mem_benchmarks: list[tuple[Callable, FunctionMetadata]]= []
 
 
-    def add_benchmark(self, func: Callable, bm_type: BmType, *, args: tuple = (), is_manual: bool = False, copy_args: bool = False) -> None:
+    def add_benchmark(self, func: Callable, bm_type: BmType, metadata: FunctionMetadata = FunctionMetadata()) -> None:
         """
         Add a benchmark
         
@@ -85,31 +85,32 @@ class BenchmarkRunner:
         copy_args: :class:`bool`
             Whether to deepy copy the arguments instead of mutating on the actual arguments.
         """
+        to_append = (func, metadata)
         if bm_type is BmType.SPEED:
-            self._speed_benchmarks.append(FunctionMetadata(func, args, is_manual, copy_args))
+            self._speed_benchmarks.append(to_append)
         else:
-            self._mem_benchmarks.append(FunctionMetadata(func, args, is_manual, copy_args))
+            self._mem_benchmarks.append(to_append)
 
     @staticmethod
-    def _deep_copy_args(args: tuple, *, count: int | None = None) -> tuple:
-        count = count or len(args)
-        new_args = []
-        for i in range(count):
-            arg = args[i]
-            try:
-                new_arg = deepcopy(arg)
-            except (AttributeError, TypeError):
-                new_arg = arg
-                logger.warn("Could not copy args of type: %s", repr(arg.__class__.__name__), colour_all=True)
-            new_args.append(new_arg)
-        
-        if count != len(args):
-            new_args.extend(args[count:])
-        return tuple(new_args)
+    def _deep_copy_args(args: tuple, kwargs: dict | None) -> tuple[tuple, dict]:
+        copied_args = tuple(deepcopy(args))
+        if kwargs:
+            return copied_args, deepcopy(kwargs)
+        return tuple(deepcopy(args)), {}
+    
+    @staticmethod
+    def get_args_and_kwargs(args: tuple, kwargs: dict | None, *, copy_args: bool) -> tuple[tuple, dict]:
+        if copy_args:
+            copied_args, copied_kwargs = BenchmarkRunner._deep_copy_args(args, kwargs)
+        else:
+            copied_args, copied_kwargs = args, (kwargs or {})
+
+        return copied_args, copied_kwargs
 
     def add_benchmarks(self, bm_type: BmType, *, bms: list[str] | None = None, module_name: str = "__main__",
                             to_ignore: list[str] | None = None,
-                            func_metadata: dict[str, tuple] | None = None,  args: tuple = (),
+                            function_metadata_map: dict[str, FunctionMetadata] | None = None,  args: tuple = (),
+                            kwargs: dict | None = None,
                             copy_args: bool = False, is_manual: bool = False, key: Callable | None = None) -> None:
         """Add multiple benchmarks.
 
@@ -131,7 +132,7 @@ class BenchmarkRunner:
             The ``main`` function is automatically ignored, as it should be used
             to start the benchmark runner.
 
-        func_metadata : dict[``str``, ``tuple``] | ``None``
+        function_metadata_map : dict[``str``, ``FunctionMetadata``] | ``None``
             A mapping of function names to metadata describing how the benchmark
             should run.
 
@@ -185,16 +186,16 @@ class BenchmarkRunner:
         for name, fn in inspect.getmembers(sys.modules["__main__"], inspect.isfunction):
             if fn.__module__ != module_name or name in to_ignore or not key(fn):
                 continue
-            bm_args = args
-            bm_is_manual = is_manual
-            bm_copy_args = copy_args
-            if func_metadata is not None:
-                func_info = func_metadata.get(fn.__name__, ()) or ()
-                if func_info:
-                    bm_args = func_info[0]
-                    bm_is_manual = func_info[1] if len(func_info) > 1 else is_manual
-                    bm_copy_args = func_info[2] if len(func_info) > 2 else copy_args
-            functions.append((fn, bm_args, bm_is_manual, bm_copy_args))
+            
+            func_metadata = FunctionMetadata(args=args, kwargs=kwargs, is_manual=is_manual, copy_args=copy_args)
+            if function_metadata_map is not None:
+                tmp = function_metadata_map.get(fn.__name__)
+                if tmp is not None and not isinstance(tmp, FunctionMetadata):
+                    raise TypeError(f"Expected FunctionMetadata got {tmp.__class__!r} instead")
+                if tmp:
+                    func_metadata = tmp
+
+            functions.append((fn, func_metadata))
         self._speed_benchmarks.extend(functions) if bm_type is BmType.SPEED else self._mem_benchmarks.extend(functions)
         self.module_name = module_name
 
@@ -276,7 +277,7 @@ class BenchmarkRunner:
         else:
             logger.info("\n".join(END_STR))
 
-        if not speed_base_data and mem_base_data:
+        if not speed_base_data and not mem_base_data:
             raise ValueError("Both 'speed_base_data' and 'mem_base_data' are empty!")
 
         output_file = output_file or (sys.argv[1].removeprefix('--output=') if (len(sys.argv) > 1 and "--output=" in sys.argv[1]) else None)
@@ -309,27 +310,23 @@ class BenchmarkRunner:
     #  |                                |
     #  +================================+
     
-    def _get_warmup_theshold_and_runs(self, func: Callable, args: tuple, target_multiplier: int = 10, 
+    def _get_warmup_theshold_and_runs(self, func: Callable, args: tuple, kwargs: dict | None, target_multiplier: int = 10, 
                                       *, is_manual: bool, copy_args: bool) -> tuple[float, int]:
         tt: float = 0
-        copied_args = self._deep_copy_args(args) if args and copy_args else args
-
         n = 5
         for _ in range(n):
             if is_manual:
-                if copied_args:
-                    tt += func(*copied_args)
-                    if copy_args:
-                        copied_args = self._deep_copy_args(args)
+                if args or kwargs:
+                    copied_args, copied_kwargs = self.get_args_and_kwargs(args, kwargs, copy_args=copy_args)
+                    tt += func(*copied_args, **copied_kwargs)
                 else:
                     tt += func()
             else:
-                if copied_args:
+                if args or kwargs:
+                    copied_args, copied_kwargs = self.get_args_and_kwargs(args, kwargs, copy_args=copy_args)
                     start = perf_counter()
-                    func(*copied_args)
+                    func(*copied_args, **copied_kwargs)
                     tt += perf_counter() - start
-                    if copy_args:
-                        copied_args = self._deep_copy_args(args)
                 else:
                     start = perf_counter()
                     func()
@@ -341,17 +338,19 @@ class BenchmarkRunner:
 
         return warmup_threshold, int(runs)
 
-    def _benchmark_speed(self, functions: list[FunctionMetadata]) -> dict:
+    def _benchmark_speed(self, functions: list[tuple[Callable, FunctionMetadata]]) -> dict:
         base_data = self._setup_base_data(len(functions), BmType.SPEED)
         data = base_data[BmType.SPEED]
-        for bm, args, is_manual, copy_args, in functions:
+
+        for bm, func_metadata in functions:
+            args, kwargs, is_manual, copy_args = get_attributes_from_slots(func_metadata)
             bm_name = bm.__name__
             bm_map = data['benchmarks'][bm_name] = {}
             bm_map['name'] = bm_name
             bm_map['description'] = bm.__doc__
             bm_map['values'] = []
             # get warmup and the runs per bm
-            warmup_threshold, runs = self._get_warmup_theshold_and_runs(bm, args=args, is_manual=is_manual, copy_args=copy_args)
+            warmup_threshold, runs = self._get_warmup_theshold_and_runs(bm, args, kwargs, is_manual=is_manual, copy_args=copy_args)
             if self.warmup_threshold:
                 warmup_threshold = self.warmup_threshold
 
@@ -360,12 +359,9 @@ class BenchmarkRunner:
             elapsed: float = 0
             warmup_loops: int = 0
             while elapsed < warmup_threshold:
-                if args and copy_args:
-                    copied_args = self._deep_copy_args(args)
-                else:
-                    copied_args = args
+                copied_args, copied_kwargs = self.get_args_and_kwargs(args, kwargs, copy_args=copy_args)
                 start = perf_counter()
-                bm(*copied_args) if copied_args else bm()
+                bm(*copied_args, **copied_kwargs) if (copied_args or copied_kwargs) else bm()
                 elapsed += perf_counter() - start
                 warmup_loops += 1
 
@@ -374,20 +370,14 @@ class BenchmarkRunner:
             
             if not is_manual:
                 for _ in range(runs):
-                    if args and copy_args:
-                        copied_args = self._deep_copy_args(args)
-                    else:
-                        copied_args = args
+                    copied_args, copied_kwargs = self.get_args_and_kwargs(args, kwargs, copy_args=copy_args)
                     start = perf_counter()
-                    bm(*copied_args) if copied_args else bm()
+                    bm(*copied_args, **copied_kwargs) if (copied_args or copied_kwargs) else bm()
                     bm_map['values'].append(perf_counter() - start)
             else:
                 for _ in range(runs):
-                    if args and copy_args:
-                        copied_args = self._deep_copy_args(args)
-                    else:
-                        copied_args = args
-                    bm_map['values'].append(bm(*copied_args) if copied_args else bm())
+                    copied_args, copied_kwargs = self.get_args_and_kwargs(args, kwargs, copy_args=copy_args)
+                    bm_map['values'].append(bm(*copied_args, **copied_kwargs) if (copied_args or copied_kwargs) else bm())
         return base_data
 
     @staticmethod
@@ -437,12 +427,13 @@ class BenchmarkRunner:
     #  |                                  |
     #  +==================================+
 
-    def _benchmark_mem(self, functions: list[FunctionMetadata]) -> dict:
-        runs = max(self.runs, 20) if isinstance(self.runs, int) else 10
+    def _benchmark_mem(self, functions: list[tuple[Callable, FunctionMetadata]]) -> dict:
+        runs = max(self.runs, 150) if isinstance(self.runs, int) else 150
         base_data = self._setup_base_data(len(functions), BmType.MEMORY)
         data = base_data[ BmType.MEMORY]
 
-        for bm, args, is_manual, copy_args, in functions:
+        for bm, func_metadata in functions:
+            args, kwargs, is_manual, copy_args = get_attributes_from_slots(func_metadata)
             bm_name = bm.__name__
             bm_map = data['benchmarks'][bm_name] = {}
             bm_map['name'] = bm_name
@@ -451,14 +442,11 @@ class BenchmarkRunner:
             bm_map['runs'] = runs
 
             # get warmup and the runs per bm
-            n = int(5 * JIT_MULTIPLIER)
+            n = int(25 * JIT_MULTIPLIER)
             bm_map['warmup_loops'] = n
             for _ in range(n):
-                if args and copy_args:
-                    copied_args = self._deep_copy_args(args)
-                else:
-                    copied_args = args
-                bm(*copied_args) if copied_args else bm()
+                copied_args, copied_kwargs = self.get_args_and_kwargs(args, kwargs, copy_args=copy_args)
+                bm(*copied_args, **copied_kwargs) if (copied_args or copied_kwargs) else bm()
 
             if not is_manual:
                 if not HAS_TRACEMALLOC:
@@ -466,21 +454,14 @@ class BenchmarkRunner:
 
                 tr_malloc.start()
                 for _ in range(runs):
-                    if args and copy_args:
-                        copied_args = self._deep_copy_args(args)
-                    else:
-                        copied_args = args
-                    #start = take_snapshot()
-                    bm(*copied_args) if copied_args else bm()
+                    copied_args, copied_kwargs = self.get_args_and_kwargs(args, kwargs, copy_args=copy_args)
+                    bm(*copied_args, **copied_kwargs) if (copied_args or copied_kwargs) else bm()
                     bm_map['memory'].append(tr_malloc.get_traced_memory()[1])
                     tr_malloc.reset_peak()
             else:
                 for _ in range(runs):
-                    if args and copy_args:
-                        copied_args = self._deep_copy_args(args)
-                    else:
-                        copied_args = args
-                    bm_map['memory'].append(bm(*copied_args) if copied_args else bm())
+                    copied_args, copied_kwargs = self.get_args_and_kwargs(args, kwargs, copy_args=copy_args)
+                    bm_map['memory'].append(bm(*copied_args, **copied_kwargs) if (copied_args or copied_kwargs) else bm())
 
         return base_data
 

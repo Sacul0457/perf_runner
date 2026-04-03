@@ -306,3 +306,7 @@ class GeometricMean:
             else:
                 fmt = "Geometric Mean: %s more mem usage"
         logger(fmt, geo_mean_fmt, colour_all=True)
+
+
+def get_attributes_from_slots(instance: Any):
+    return tuple(getattr(instance, attr) for attr in instance.__class__.__slots__)
