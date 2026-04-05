@@ -349,8 +349,10 @@ class BenchmarkRunner:
             bm_map['name'] = bm_name
             bm_map['description'] = bm.__doc__
             bm_map['values'] = []
+            print(f"Starting {bm_name!r}..", end='')
             # get warmup and the runs per bm
             warmup_threshold, runs = self._get_warmup_theshold_and_runs(bm, args, kwargs, is_manual=is_manual, copy_args=copy_args)
+            print("..", end='')
             if self.warmup_threshold:
                 warmup_threshold = self.warmup_threshold
 
@@ -364,7 +366,7 @@ class BenchmarkRunner:
                 bm(*copied_args, **copied_kwargs) if (copied_args or copied_kwargs) else bm()
                 elapsed += perf_counter() - start
                 warmup_loops += 1
-
+            print("..", end='')
             bm_map['warmup_loops'] = warmup_loops
             bm_map['runs'] = runs
             
@@ -378,6 +380,8 @@ class BenchmarkRunner:
                 for _ in range(runs):
                     copied_args, copied_kwargs = self.get_args_and_kwargs(args, kwargs, copy_args=copy_args)
                     bm_map['values'].append(bm(*copied_args, **copied_kwargs) if (copied_args or copied_kwargs) else bm())
+            print("✅")
+        print()
         return base_data
 
     @staticmethod
@@ -440,13 +444,14 @@ class BenchmarkRunner:
             bm_map['description'] = bm.__doc__
             bm_map['memory'] = []
             bm_map['runs'] = runs
-
+            print(f"Starting {bm_name!r}..", end='')
             # get warmup and the runs per bm
             n = int(25 * JIT_MULTIPLIER)
             bm_map['warmup_loops'] = n
             for _ in range(n):
                 copied_args, copied_kwargs = self.get_args_and_kwargs(args, kwargs, copy_args=copy_args)
                 bm(*copied_args, **copied_kwargs) if (copied_args or copied_kwargs) else bm()
+            print("..", end='')
 
             if not is_manual:
                 if not HAS_TRACEMALLOC:
@@ -462,7 +467,8 @@ class BenchmarkRunner:
                 for _ in range(runs):
                     copied_args, copied_kwargs = self.get_args_and_kwargs(args, kwargs, copy_args=copy_args)
                     bm_map['memory'].append(bm(*copied_args, **copied_kwargs) if (copied_args or copied_kwargs) else bm())
-
+            print("✅")
+        print()
         return base_data
 
     @staticmethod
