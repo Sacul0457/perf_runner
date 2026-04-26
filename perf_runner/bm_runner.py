@@ -349,7 +349,7 @@ class BenchmarkRunner:
             bm_map['name'] = bm_name
             bm_map['description'] = bm.__doc__
             bm_map['values'] = []
-            print(f"Starting {bm_name!r}..", end='')
+            print(f"(Speed) Starting {bm_name!r}..", end='')
             # get warmup and the runs per bm
             warmup_threshold, runs = self._get_warmup_theshold_and_runs(bm, args, kwargs, is_manual=is_manual, copy_args=copy_args)
             print("..", end='')
@@ -444,7 +444,7 @@ class BenchmarkRunner:
             bm_map['description'] = bm.__doc__
             bm_map['memory'] = []
             bm_map['runs'] = runs
-            print(f"Starting {bm_name!r}..", end='')
+            print(f"(Memory) Starting {bm_name!r}..", end='')
             # get warmup and the runs per bm
             n = int(25 * JIT_MULTIPLIER)
             bm_map['warmup_loops'] = n
