@@ -61,12 +61,12 @@ class Logger:
     def warn(self, fmt: str, *args, colour_all: bool = False, **kwargs):
         if self.level < 2:
             return
-        self._log(fmt, *args, color=self.YELLOW, colour_all=colour_all, **kwargs)
+        self._log(f"WARNING: {fmt}", *args, color=self.YELLOW, colour_all=colour_all, **kwargs)
 
     def error(self, fmt: str, *args, colour_all: bool = False, **kwargs):
         if self.level < 1:
             return
-        self._log(fmt, *args, color=self.RED, colour_all=colour_all, **kwargs)
+        self._log(f"ERROR: {fmt}", *args, color=self.RED, colour_all=colour_all, **kwargs)
 
 
     def red(self, fmt: str, *args, colour_all: bool = False, **kwargs):
@@ -308,5 +308,5 @@ class GeometricMean:
         logger(fmt, geo_mean_fmt, colour_all=True)
 
 
-def get_attributes_from_slots(instance: Any):
+def get_attributes_from_slots(instance: Any) -> tuple[str, ...]:
     return tuple(getattr(instance, attr) for attr in instance.__class__.__slots__)

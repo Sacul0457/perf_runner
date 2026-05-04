@@ -5,6 +5,7 @@ from .utils import _analyse_benchmark, _print_common_info, _print_per_run_info, 
 from json import load
 from .bm_runner import BenchmarkRunner
 from .api_types import BmType
+from argparse import ArgumentParser
 
 from typing import Literal
 
@@ -174,24 +175,8 @@ def print_help_command(cmd_type: Literal['-h', '--help','compare_to', '' \
     sys.exit(0)
 
 
-def compare_to(args: list[str]):
-    if len(args) < 3:
-        _main_logger.error("Expected at least 1 arg, got %s instead.\
-                           \nRun `-m Runner compare_to -h' for more information.", len(args) - 2, colour_all=True)
-        sys.exit(1)
-
-    if len(args) < 4:
-        if args[2] in ('-h', '--help'):
-            print_help_command('compare_to')
-        else:
-            _main_logger.error("Expected 2 args, got %s instead.\
-                               \nRun `-m Runner compare_to -h' for more information", len(args) - 2, colour_all=True)
-            sys.exit(1)
-
+def compare_to(base_file_path: str, other_file_path: str):
     
-    base_file_path = args[2]
-    other_file_path = args[3]
-
     with open(base_file_path, "r") as f:
         base_data = load(f)
 
@@ -226,48 +211,54 @@ def _show(data: dict):
 
 
 def show(args: list[str]):
-    if len(args) == 2:
-        _main_logger.error("Expected 1 arg at least, got %s instead.\
-                           \nRun '-m Runner show -h' for more information", len(args) - 2, colour_all=True)
-        sys.exit(1)
-    
-    if args[2] in ('-h' or '--h'):
-        print_help_command('show')
-        return
-    
-    for i in range(2, len(args)):
+    for i in range(0, len(args)):
         file_path = args[i]
         try:
             with open(file_path, "r") as f:
                 data = load(f)
         except FileNotFoundError:
-            _main_logger.error("%s could not be opened", repr(file_path), colour_all=True)
+            _main_logger.error("%s could not be opened, skipping", repr(file_path), colour_all=True)
             continue
 
         if not data:
-            _main_logger.error("Missing data", colour_all=True)
+            _main_logger.error("%s is empty, skipping", repr(file_path), colour_all=True)
             continue
 
         _show(data)
 
 
 def main():
-    args = sys.argv
-    if len(args) < 2:
-        # print help command
-        sys.exit(0)
+    parser = ArgumentParser()
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    # show command
+    show_parser = subparsers.add_parser("show")
+    show_parser.add_argument(
+        "files",
+        nargs="+",
+        type=str,
+        help="JSON files containing benchmark data"
+    )
+
+    # compare_to command
+    compare_parser = subparsers.add_parser("compare_to")
     
-    command: str = args[1]
-    if command == "compare_to":
-        compare_to(args)
-    elif command == "show":
-        show(args)
-    elif command in ('-h', "--help"):
-        print_help_command(command)
+    compare_parser.add_argument(
+        "file1",
+        type=str
+    )
+    compare_parser.add_argument(
+        "file2",
+        type=str
+    )
+
+    args = parser.parse_args()
+    if hasattr(args, "files"):
+        show(args.files)
     else:
-        _main_logger.error("%s is not a valid command.\n", repr(command), colour_all=True)
-        print_help_command('-h')
-        sys.exit(1)
+        assert(args.file1 and args.file2)
+        compare_to(args.file1, args.file2)
+
 
 if __name__ == "__main__":
     main()
