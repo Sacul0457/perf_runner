@@ -308,5 +308,5 @@ class GeometricMean:
         logger(fmt, geo_mean_fmt, colour_all=True)
 
 
-def get_attributes_from_slots(instance: Any) -> tuple[str, ...]:
+def get_attributes_from_slots(instance: Any) -> tuple:
     return tuple(getattr(instance, attr) for attr in instance.__class__.__slots__)
